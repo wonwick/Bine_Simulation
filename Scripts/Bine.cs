@@ -19,6 +19,7 @@ public class Bine : MonoBehaviour {
     private Collision beedCollision;
     private GameObject thisGameObject;
     private bool supportFound=false;
+    public int startingBeed = 0;
 
     // Use this for initialization
     void Start() {
@@ -27,7 +28,10 @@ public class Bine : MonoBehaviour {
         lastBeed = Instantiate(beed, transform.position, transform.rotation);
         lastBeed.name = "beed0";
         lastBeed.transform.parent = thisGameObject.transform;
-        Vector3 initRotation = new Vector3(270, 0, 0);
+        //Vector3 initRotation = new Vector3(270, 0, 0); //sphericalbeed
+       
+        Vector3 initRotation = new Vector3(270, 0, 0); //cylindericalBeed
+
         lastBeed.transform.Rotate(initRotation);
         plant[currentNumberOfBeeds] = lastBeed;
 
@@ -47,13 +51,23 @@ public class Bine : MonoBehaviour {
                 }
 
                 else {
-                    Debug.Log("supportFoundGrowth\n");
+                    Debug.Log("supportFoundGrowth\n");                                
+                    Debug.DrawRay(beedCollision.contacts[0].point, beedCollision.contacts[0].normal, Color.green, 60*5, false);
+                    Vector3 newGrowthDirection = beedCollision.contacts[0].normal;
+                    newGrowthDirection = Vector3.RotateTowards(newGrowthDirection, lastBeed.transform.forward, 90, 0.0f);
+                    //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection*10, Color.red, 60*5, false);
+                    SupportedGrowth(newGrowthDirection);
+                    supportFound = false;
+                    circumnutationOn = true;
+
+
                 }
             }
         }
         else {
             frameCount++;
             //check whether there is a colision on lastbeed
+            
             
 
             if (circumnutationOn)
@@ -62,6 +76,20 @@ public class Bine : MonoBehaviour {
             }
         }
     }
+
+    void SupportedGrowth(Vector3 newGrowthDirection) {
+        Vector3 newPosition = lastBeed.transform.position + Vector3.Normalize(newGrowthDirection)* beedDistance;
+        DestroyImmediate(lastBeed.GetComponent<Collider>());
+        DestroyImmediate(lastBeed.GetComponent<Beed>());
+        lastBeed = Instantiate(beed, newPosition, lastBeed.transform.rotation);
+        lastBeed.name = "Beed" + currentNumberOfBeeds;
+        lastBeed.transform.parent = thisGameObject.transform;
+        lastBeed.transform.Rotate(getRelativeTilt(currentNumberOfBeeds, maxBeedRotation));
+        plant[currentNumberOfBeeds] = lastBeed;
+        currentNumberOfBeeds++;
+    }
+
+
 
     void SupportLessGrowth() {
         Vector3 newPosition = lastBeed.transform.position + lastBeed.transform.forward * beedDistance;
@@ -76,9 +104,9 @@ public class Bine : MonoBehaviour {
     }
 
     void circumnutation() {
-        plant[0].transform.Rotate(getRelativeTilt(1, circumnutationSpeed), Space.World);
-        GameObject prevBeed = plant[0];
-        for (int i = 1; i < currentNumberOfBeeds; i++)
+        plant[startingBeed].transform.Rotate(getRelativeTilt(1, circumnutationSpeed), Space.World);
+        GameObject prevBeed = plant[startingBeed];
+        for (int i= startingBeed+1; i < currentNumberOfBeeds; i++)
         {
             GameObject currentBeed = plant[i];
             Vector3 newPosition = prevBeed.transform.position + prevBeed.transform.forward * beedDistance;
@@ -100,7 +128,8 @@ public class Bine : MonoBehaviour {
     public void onHitSupportStructure(Collision collision) {
         beedCollision = collision;
         circumnutationOn = false;
-        //supportFound = true;
+        supportFound = true;
+        startingBeed = currentNumberOfBeeds;
     }
 
 
