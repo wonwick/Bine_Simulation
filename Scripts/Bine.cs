@@ -20,6 +20,11 @@ public class Bine : MonoBehaviour {
     private GameObject thisGameObject;
     private bool supportFound=false;
     public int startingBeed = 0;
+    private Vector3 newGrowthDirection;
+    private Vector3 collisionNormal;
+    public float gravitrophismLimit = 45;
+    public float gravitrophismCorrectionValue = 0.01f;
+
 
     // Use this for initialization
     void Start() {
@@ -52,12 +57,12 @@ public class Bine : MonoBehaviour {
 
                 else {
                     Debug.Log("supportFoundGrowth\n");                                
-                    Debug.DrawRay(beedCollision.contacts[0].point, beedCollision.contacts[0].normal, Color.green, 60*5, false);
-                    Vector3 newGrowthDirection = beedCollision.contacts[0].normal;
+                    //Debug.DrawRay(beedCollision.contacts[0].point, collisionNormal, Color.green, 60*5, false);
+                    newGrowthDirection = collisionNormal;
                     newGrowthDirection = Vector3.RotateTowards(newGrowthDirection, lastBeed.transform.forward, 90, 0.0f);
                     //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection*10, Color.red, 60*5, false);
                     SupportedGrowth(newGrowthDirection);
-                    supportFound = false;
+                    //supportFound = false;
                     circumnutationOn = true;
 
 
@@ -72,7 +77,15 @@ public class Bine : MonoBehaviour {
 
             if (circumnutationOn)
             {
-                circumnutation();
+                if (!supportFound)
+                {
+                    supportLessCircumnutation();
+                }
+                else
+                {
+                    //add new supportfoundCircumnutation here
+                    supportedCircumnutation();
+                }
             }
         }
     }
@@ -86,6 +99,7 @@ public class Bine : MonoBehaviour {
         lastBeed.transform.parent = thisGameObject.transform;
         lastBeed.transform.Rotate(getRelativeTilt(currentNumberOfBeeds, maxBeedRotation));
         plant[currentNumberOfBeeds] = lastBeed;
+        //Debug.DrawRay(lastBeed.transform.position, lastBeed.transform.forward * 2, Color.red, 5, false);
         currentNumberOfBeeds++;
     }
 
@@ -103,7 +117,7 @@ public class Bine : MonoBehaviour {
         currentNumberOfBeeds++;
     }
 
-    void circumnutation() {
+    void supportLessCircumnutation() {
         plant[startingBeed].transform.Rotate(getRelativeTilt(1, circumnutationSpeed), Space.World);
         GameObject prevBeed = plant[startingBeed];
         for (int i= startingBeed+1; i < currentNumberOfBeeds; i++)
@@ -112,6 +126,40 @@ public class Bine : MonoBehaviour {
             Vector3 newPosition = prevBeed.transform.position + prevBeed.transform.forward * beedDistance;
             currentBeed.transform.position = newPosition;
             currentBeed.transform.Rotate(getRelativeTilt(i, circumnutationSpeed), Space.World);
+            prevBeed = currentBeed;
+        }
+    }
+
+    void supportedCircumnutation()
+    {
+        int supportedStartingBeed = startingBeed;
+        Debug.Log("supportedCircumnutation"+supportedStartingBeed+"\n");
+        //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.blue, 5*60, false);
+        Vector3 newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, collisionNormal * -1, 0.01f, 0);
+        plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
+
+        Vector3 theUpward = new Vector3(0, 100, 0);
+        float gravitrophismDifference = Vector3.Angle(plant[supportedStartingBeed].transform.forward, theUpward);
+        Debug.Log("the angle:" + gravitrophismDifference);
+        if (gravitrophismDifference >= gravitrophismLimit)
+        {
+            newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, theUpward, gravitrophismCorrectionValue, 0);
+            plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
+
+        }
+
+        //Debug.DrawRay(plant[startingBeed].transform.position, collisionNormal * -5, Color.black, 60 * 5, false);
+        //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.red, 60*5, false);
+        //Debug.DrawRay(plant[startingBeed].transform.position, newRotation, Color.yellow, 60 * 5, false);
+
+        GameObject prevBeed = plant[supportedStartingBeed];
+        for (int i = supportedStartingBeed + 1; i < currentNumberOfBeeds; i++)
+        {
+            GameObject currentBeed = plant[i];
+            Vector3 newPosition = prevBeed.transform.position + prevBeed.transform.forward * beedDistance;
+            currentBeed.transform.position = newPosition;
+            newRotation= Vector3.RotateTowards(currentBeed.transform.forward, collisionNormal * -1, 0.01f, 0);
+            currentBeed.transform.rotation = Quaternion.LookRotation(newRotation);
             prevBeed = currentBeed;
         }
     }
@@ -130,6 +178,7 @@ public class Bine : MonoBehaviour {
         circumnutationOn = false;
         supportFound = true;
         startingBeed = currentNumberOfBeeds;
+        collisionNormal = collision.contacts[0].normal;
     }
 
 
