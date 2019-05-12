@@ -24,6 +24,11 @@ public class Bine : MonoBehaviour {
     private Vector3 collisionNormal;
     public float gravitrophismLimit = 45;
     public float gravitrophismCorrectionValue = 0.01f;
+    public float gravitrophismAbsoluteLimit = 80;
+    private bool supportLost=false;
+    private Vector3 theUpward = new Vector3(0, 100, 0);
+    public float supportLostGravitrophismAdjustment = 0.01f;
+    public float reCircumnutateReadyAngle = 45;
 
 
     // Use this for initialization
@@ -50,7 +55,12 @@ public class Bine : MonoBehaviour {
             frameCount = 0;
             if (currentNumberOfBeeds < particleCount)
             {
-                if (!supportFound)
+                if (supportLost)
+                {
+                    supportLostGrowth();
+                }
+
+                else if (!supportFound)
                 {
                     SupportLessGrowth();
                 }
@@ -59,7 +69,7 @@ public class Bine : MonoBehaviour {
                     Debug.Log("supportFoundGrowth\n");                                
                     //Debug.DrawRay(beedCollision.contacts[0].point, collisionNormal, Color.green, 60*5, false);
                     newGrowthDirection = collisionNormal;
-                    newGrowthDirection = Vector3.RotateTowards(newGrowthDirection, lastBeed.transform.forward, 90, 0.0f);
+                    newGrowthDirection = Vector3.RotateTowards(newGrowthDirection, lastBeed.transform.forward, 3, 0.0f);
                     //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection*10, Color.red, 60*5, false);
                     SupportedGrowth(newGrowthDirection);
                     //supportFound = false;
@@ -90,7 +100,34 @@ public class Bine : MonoBehaviour {
         }
     }
 
-    void SupportedGrowth(Vector3 newGrowthDirection) {
+    void supportLostGrowth()
+    {
+        float gravitrophismDifference = Vector3.Angle(lastBeed.transform.forward, theUpward);
+        Debug.Log("gravitrophismDifference:" + gravitrophismDifference);
+        if (gravitrophismDifference > reCircumnutateReadyAngle)
+        {
+            circumnutationOn = false;
+            Vector3 newRotation = Vector3.RotateTowards(lastBeed.transform.forward, theUpward, supportLostGravitrophismAdjustment, 0);
+            lastBeed.transform.rotation = Quaternion.LookRotation(newRotation);
+            newGrowthDirection = lastBeed.transform.forward;
+            SupportedGrowth(newGrowthDirection);
+
+        }
+        else
+        {
+            lastBeed.transform.rotation = Quaternion.LookRotation(theUpward);
+            startingBeed = currentNumberOfBeeds-1;
+            Debug.Log("ready to Circumnutate!!");
+            circumnutationOn = true;
+            supportLost = false;
+        }
+
+
+
+    }
+
+    void SupportedGrowth(Vector3 newGrowthDirection)
+    {
         Vector3 newPosition = lastBeed.transform.position + Vector3.Normalize(newGrowthDirection)* beedDistance;
         DestroyImmediate(lastBeed.GetComponent<Collider>());
         DestroyImmediate(lastBeed.GetComponent<Beed>());
@@ -133,19 +170,21 @@ public class Bine : MonoBehaviour {
     void supportedCircumnutation()
     {
         int supportedStartingBeed = startingBeed;
-        Debug.Log("supportedCircumnutation"+supportedStartingBeed+"\n");
+        //Debug.Log("supportedCircumnutation"+supportedStartingBeed+"\n");
         //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.blue, 5*60, false);
         Vector3 newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, collisionNormal * -1, 0.01f, 0);
         plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
 
-        Vector3 theUpward = new Vector3(0, 100, 0);
         float gravitrophismDifference = Vector3.Angle(plant[supportedStartingBeed].transform.forward, theUpward);
-        Debug.Log("the angle:" + gravitrophismDifference);
+        //Debug.Log("the angle:" + gravitrophismDifference);
         if (gravitrophismDifference >= gravitrophismLimit)
         {
-            newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, theUpward, gravitrophismCorrectionValue, 0);
+            //newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, theUpward, gravitrophismCorrectionValue, 0);
+            //plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
+            float addition = (gravitrophismDifference - gravitrophismLimit) / gravitrophismCorrectionValue;
+            newRotation = plant[supportedStartingBeed].transform.forward;
+            newRotation = new Vector3(newRotation.x, newRotation.y+Mathf.Deg2Rad* addition, newRotation.z);
             plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
-
         }
 
         //Debug.DrawRay(plant[startingBeed].transform.position, collisionNormal * -5, Color.black, 60 * 5, false);
@@ -174,11 +213,23 @@ public class Bine : MonoBehaviour {
     }
 
     public void onHitSupportStructure(Collision collision) {
-        beedCollision = collision;
-        circumnutationOn = false;
-        supportFound = true;
+        beedCollision = collision;        
         startingBeed = currentNumberOfBeeds;
         collisionNormal = collision.contacts[0].normal;
+        float collitionangleRelativeToUpward= Vector3.Angle(collisionNormal, theUpward);
+    
+        if (collitionangleRelativeToUpward < gravitrophismAbsoluteLimit)
+        {
+            Debug.Log("Support Lost !!!");
+            supportFound = false;
+            circumnutationOn = false;
+            supportLost = true;
+        }
+        else {
+            supportFound = true;
+            circumnutationOn = false;
+
+        }
     }
 
 

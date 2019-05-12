@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Beed : MonoBehaviour {
 
+    public float acceptedCollitionAngle = 30;
+
 	// Use this for initialization
 	void Start () {
         Debug.Log("a new beed\n");
@@ -18,7 +20,24 @@ public class Beed : MonoBehaviour {
 
     void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("colided");
-        GameObject.Find("plant").GetComponent<Bine>().onHitSupportStructure(collision);
+        
+        
+        
+        float currentCollitionAngle = Vector3.Angle(this.gameObject.transform.forward, collision.contacts[0].normal*-1);
+
+        Debug.Log("colided: " + currentCollitionAngle);
+
+        if (currentCollitionAngle > acceptedCollitionAngle)
+        {
+            GameObject.Find("plant").GetComponent<Bine>().onHitSupportStructure(collision);
+
+        }
+        else {
+            Debug.Log("not Accepted collition: " + currentCollitionAngle+"<"+acceptedCollitionAngle);
+            DestroyImmediate(this.gameObject.GetComponent<Collider>());
+            DestroyImmediate(this.gameObject.GetComponent<Beed>());
+            
+        }
+            
     }
 }
