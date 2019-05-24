@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Bine : MonoBehaviour {
 
+    public GameObject seed;
     private int frameCount = 0;
     public int growthTime = 50;
     public int particleCount = 10;
@@ -29,17 +30,26 @@ public class Bine : MonoBehaviour {
     private Vector3 theUpward = new Vector3(0, 100, 0);
     public float supportLostGravitrophismAdjustment = 0.01f;
     public float reCircumnutateReadyAngle = 45;
-
+    public float growthAngleBias = 30;
+    public float supportedCircumnutationSpeed = 1;
+    TubeRenderer tubeRenderer;
+    Vector3[] beedPositions;
+    float[] girths;
+    public float maxGirth = 2;
 
     // Use this for initialization
     void Start() {
-        thisGameObject =GameObject.Find("plant");
+        thisGameObject = this.gameObject;
+        seed = GameObject.Find("seed1");
         plant = new GameObject[particleCount];
+        beedPositions = new Vector3[particleCount];
+        girths = new float[particleCount];
         lastBeed = Instantiate(beed, transform.position, transform.rotation);
-        lastBeed.name = "beed0";
+        lastBeed.name = thisGameObject.name +"_beed_0";
         lastBeed.transform.parent = thisGameObject.transform;
         //Vector3 initRotation = new Vector3(270, 0, 0); //sphericalbeed
-       
+        tubeRenderer=thisGameObject.GetComponent<TubeRenderer>();
+
         Vector3 initRotation = new Vector3(270, 0, 0); //cylindericalBeed
 
         lastBeed.transform.Rotate(initRotation);
@@ -49,7 +59,7 @@ public class Bine : MonoBehaviour {
     }
     //this is called in fixed intervals
     private void FixedUpdate() {
-        if (frameCount == growthTime)
+        if (frameCount >= growthTime)
         {
             //Debug.Log("growthTime\n");
             frameCount = 0;
@@ -69,9 +79,13 @@ public class Bine : MonoBehaviour {
                     Debug.Log("supportFoundGrowth\n");                                
                     //Debug.DrawRay(beedCollision.contacts[0].point, collisionNormal, Color.green, 60*5, false);
                     newGrowthDirection = collisionNormal;
-                    newGrowthDirection = Vector3.RotateTowards(newGrowthDirection, lastBeed.transform.forward, 3, 0.0f);
-                    //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection*10, Color.red, 60*5, false);
+
+                    newGrowthDirection = Vector3.RotateTowards(lastBeed.transform.forward, newGrowthDirection,  Mathf.Deg2Rad* growthAngleBias, 0.0f);
+                    //Debug.DrawRay(lastBeed.transform.position, collisionNormal*20, Color.yellow, 60 * 5, false);           
+                    //Debug.DrawRay(lastBeed.transform.position, lastBeed.transform.forward, Color.blue, 60*5, false);
+                    //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection * 2, Color.red, 60 * 5, false);
                     SupportedGrowth(newGrowthDirection);
+
                     //supportFound = false;
                     circumnutationOn = true;
 
@@ -98,6 +112,14 @@ public class Bine : MonoBehaviour {
                 }
             }
         }
+        beedPositions = new Vector3[currentNumberOfBeeds];
+        for (int i = 0; i < currentNumberOfBeeds; i++)
+        {   
+            beedPositions[i] = plant[i].transform.localPosition;
+            girths[i] = tapperFunction_1(i,currentNumberOfBeeds, particleCount, maxGirth);
+        }
+        //tubeRenderer.SetPoints(beedPositions, 1, Color.cyan);
+        tubeRenderer.SetBinePoints(beedPositions, girths, Color.cyan);
     }
 
     void supportLostGrowth()
@@ -131,10 +153,13 @@ public class Bine : MonoBehaviour {
         Vector3 newPosition = lastBeed.transform.position + Vector3.Normalize(newGrowthDirection)* beedDistance;
         DestroyImmediate(lastBeed.GetComponent<Collider>());
         DestroyImmediate(lastBeed.GetComponent<Beed>());
-        lastBeed = Instantiate(beed, newPosition, lastBeed.transform.rotation);
+        lastBeed = Instantiate(beed, newPosition, Quaternion.LookRotation(newGrowthDirection));
+
+        //Instantiate(beed, newPosition, Quaternion.LookRotation(newGrowthDirection));
+
         lastBeed.name = "Beed" + currentNumberOfBeeds;
         lastBeed.transform.parent = thisGameObject.transform;
-        lastBeed.transform.Rotate(getRelativeTilt(currentNumberOfBeeds, maxBeedRotation));
+        //lastBeed.transform.Rotate(getRelativeTilt(currentNumberOfBeeds, maxBeedRotation));
         plant[currentNumberOfBeeds] = lastBeed;
         //Debug.DrawRay(lastBeed.transform.position, lastBeed.transform.forward * 2, Color.red, 5, false);
         currentNumberOfBeeds++;
@@ -169,27 +194,17 @@ public class Bine : MonoBehaviour {
 
     void supportedCircumnutation()
     {
-        int supportedStartingBeed = startingBeed;
+        int supportedStartingBeed = startingBeed-1;
         //Debug.Log("supportedCircumnutation"+supportedStartingBeed+"\n");
         //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.blue, 5*60, false);
         Vector3 newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, collisionNormal * -1, 0.01f, 0);
+        //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.blue, 5*60, false);
         plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
 
-        float gravitrophismDifference = Vector3.Angle(plant[supportedStartingBeed].transform.forward, theUpward);
-        //Debug.Log("the angle:" + gravitrophismDifference);
-        if (gravitrophismDifference >= gravitrophismLimit)
-        {
-            //newRotation = Vector3.RotateTowards(plant[supportedStartingBeed].transform.forward, theUpward, gravitrophismCorrectionValue, 0);
-            //plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
-            float addition = (gravitrophismDifference - gravitrophismLimit) / gravitrophismCorrectionValue;
-            newRotation = plant[supportedStartingBeed].transform.forward;
-            newRotation = new Vector3(newRotation.x, newRotation.y+Mathf.Deg2Rad* addition, newRotation.z);
-            plant[supportedStartingBeed].transform.rotation = Quaternion.LookRotation(newRotation);
-        }
+      
 
         //Debug.DrawRay(plant[startingBeed].transform.position, collisionNormal * -5, Color.black, 60 * 5, false);
         //Debug.DrawRay(plant[startingBeed].transform.position, plant[startingBeed].transform.forward * 2, Color.red, 60*5, false);
-        //Debug.DrawRay(plant[startingBeed].transform.position, newRotation, Color.yellow, 60 * 5, false);
 
         GameObject prevBeed = plant[supportedStartingBeed];
         for (int i = supportedStartingBeed + 1; i < currentNumberOfBeeds; i++)
@@ -197,8 +212,16 @@ public class Bine : MonoBehaviour {
             GameObject currentBeed = plant[i];
             Vector3 newPosition = prevBeed.transform.position + prevBeed.transform.forward * beedDistance;
             currentBeed.transform.position = newPosition;
-            newRotation= Vector3.RotateTowards(currentBeed.transform.forward, collisionNormal * -1, 0.01f, 0);
+            newRotation= Vector3.RotateTowards(currentBeed.transform.forward, collisionNormal * -1, Mathf.Deg2Rad* supportedCircumnutationSpeed, 0);
             currentBeed.transform.rotation = Quaternion.LookRotation(newRotation);
+
+            //grvitrophism adjustment
+            newRotation = plant[supportedStartingBeed].transform.forward;
+            newRotation = new Vector3(newRotation.x, Mathf.Deg2Rad * gravitrophismLimit, newRotation.z);
+            newRotation = Vector3.RotateTowards(currentBeed.transform.forward, newRotation, Mathf.Deg2Rad * gravitrophismCorrectionValue, 0);
+            currentBeed.transform.rotation = Quaternion.LookRotation(newRotation);
+
+            //Debug.DrawRay(currentBeed.transform.position, newRotation * 0.5f, Color.cyan, 60 * 5, false);
             prevBeed = currentBeed;
         }
     }
@@ -232,6 +255,21 @@ public class Bine : MonoBehaviour {
         }
     }
 
+    float tapperFunction_0(int i, int currentBeedCount, int maxBeedCount, float maxGirth)
+    {
+        return maxGirth;
+    }
 
+    float tapperFunction_1(int i,int currentBeedCount, int maxBeedCount, float maxGirth)
+    {
+        return (maxGirth* (currentBeedCount-i) / maxBeedCount);
+    }
+
+    float tapperFunction_2(int i, int currentBeedCount, int maxBeedCount, float maxGirth)
+    {
+        float girth = Mathf.Pow(2, -1*i/10);
+        return girth;
+        //return (maxGirth * (currentBeedCount - i) / maxBeedCount);
+    }
 
 }

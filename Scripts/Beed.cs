@@ -5,9 +5,11 @@ using UnityEngine;
 public class Beed : MonoBehaviour {
 
     public float acceptedCollitionAngle = 30;
+    public GameObject thePlant;
 
-	// Use this for initialization
-	void Start () {
+    // Use this for initialization
+    void Start () {
+        
         Debug.Log("a new beed\n");
         
     }
@@ -29,13 +31,13 @@ public class Beed : MonoBehaviour {
 
         if (currentCollitionAngle > acceptedCollitionAngle)
         {
-            GameObject.Find("plant").GetComponent<Bine>().onHitSupportStructure(collision);
+            thePlant.GetComponent<Bine>().onHitSupportStructure(collision);
 
         }
         else {
             Debug.Log("not Accepted collition: " + currentCollitionAngle+"<"+acceptedCollitionAngle);
-            DestroyImmediate(this.gameObject.GetComponent<Collider>());
-            DestroyImmediate(this.gameObject.GetComponent<Beed>());
+            Destroy(this.gameObject.GetComponent<Collider>());
+            Destroy(this.gameObject.GetComponent<Beed>());
             
         }
             
