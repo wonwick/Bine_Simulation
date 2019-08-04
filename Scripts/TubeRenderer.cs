@@ -186,10 +186,12 @@ public class TubeRenderer : MonoBehaviour
         vertices[0] = new TubeVertex(v0offset + points[0], 0.0f, col);
         Vector3 v1offset = (points[points.Length - 1] - points[points.Length - 2]) * 0.01f;
         vertices[vertices.Length - 1] = new TubeVertex(v1offset + points[points.Length - 1], 0.0f, col);
-
-        for (int p = 0; p < points.Length; p++)
+        if (points.Length > 1)
         {
-            vertices[p + 1] = new TubeVertex(points[p], radius[p], col);
+            for (int p = 0; p < points.Length; p++)
+            {
+                vertices[p + 1] = new TubeVertex(points[p], radius[p], col);
+            }
         }
     }
 }

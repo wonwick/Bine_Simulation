@@ -36,6 +36,8 @@ public class Bine : MonoBehaviour {
     Vector3[] beedPositions;
     float[] girths;
     public float maxGirth = 2;
+    public bool hasGroped = false;
+    private bool IKInitiated = false;
 
     // Use this for initialization
     void Start() {
@@ -75,12 +77,19 @@ public class Bine : MonoBehaviour {
                     SupportLessGrowth();
                 }
 
-                else {
-                    Debug.Log("supportFoundGrowth\n");                                
+                else if (!hasGroped)
+                {
+                    grope();
+
+                }
+
+                else
+                {
+                    Debug.Log("supportFoundGrowth\n");
                     //Debug.DrawRay(beedCollision.contacts[0].point, collisionNormal, Color.green, 60*5, false);
                     newGrowthDirection = collisionNormal;
 
-                    newGrowthDirection = Vector3.RotateTowards(lastBeed.transform.forward, newGrowthDirection,  Mathf.Deg2Rad* growthAngleBias, 0.0f);
+                    newGrowthDirection = Vector3.RotateTowards(lastBeed.transform.forward, newGrowthDirection, Mathf.Deg2Rad * growthAngleBias, 0.0f);
                     //Debug.DrawRay(lastBeed.transform.position, collisionNormal*20, Color.yellow, 60 * 5, false);           
                     //Debug.DrawRay(lastBeed.transform.position, lastBeed.transform.forward, Color.blue, 60*5, false);
                     //Debug.DrawRay(lastBeed.transform.position, newGrowthDirection * 2, Color.red, 60 * 5, false);
@@ -88,7 +97,6 @@ public class Bine : MonoBehaviour {
 
                     //supportFound = false;
                     circumnutationOn = true;
-
 
                 }
             }
@@ -120,6 +128,15 @@ public class Bine : MonoBehaviour {
         }
         //tubeRenderer.SetPoints(beedPositions, 1, Color.cyan);
         tubeRenderer.SetBinePoints(beedPositions, girths, Color.cyan);
+    }
+
+    void grope()
+    {
+        if (!IKInitiated) {
+
+        }
+
+
     }
 
     void supportLostGrowth()
@@ -169,8 +186,9 @@ public class Bine : MonoBehaviour {
 
     void SupportLessGrowth() {
         Vector3 newPosition = lastBeed.transform.position + lastBeed.transform.forward * beedDistance;
-        DestroyImmediate(lastBeed.GetComponent<Collider>());
-        DestroyImmediate(lastBeed.GetComponent<Beed>());
+        // removing the colider of previouse beed
+        //DestroyImmediate(lastBeed.GetComponent<Collider>());
+        //DestroyImmediate(lastBeed.GetComponent<Beed>());
         lastBeed = Instantiate(beed, newPosition, lastBeed.transform.rotation);
         lastBeed.name = "Beed" + currentNumberOfBeeds;
         lastBeed.transform.parent = thisGameObject.transform;
