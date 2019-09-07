@@ -3,16 +3,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Bine : MonoBehaviour {
-
+    bool addLeaf = true;
+    public int currentNumberOfBeeds = 0;
+    public int currentNumberOfLeaves = 0;
+    public float leafGrowthRate;
     public GameObject seed;
+    public GameObject leaf;
+    public GameObject newLeaf;
     private int frameCount = 0;
     public int growthTime = 50;
     public int particleCount = 10;
     public GameObject beed;
     public float radius = 1;
     GameObject[] plant;
+    GameObject[] leaves;
     GameObject lastBeed;
-    private int currentNumberOfBeeds = 0;
     public float beedDistance = 1;
     public Vector3 maxBeedRotation = new Vector3(5, 5, 5);
     public Vector3 circumnutationSpeed = new Vector3(0, 5, 0);
@@ -38,12 +43,17 @@ public class Bine : MonoBehaviour {
     public float maxGirth = 2;
     public bool hasGroped = false;
     private bool IKInitiated = false;
-
+    public int NoOfIKIterations = 50;
+    private bool groping = false;
+    Collider collidingObject;
+    Collider collidingBeed;
+    Leaf theLeaf;
     // Use this for initialization
     void Start() {
         thisGameObject = this.gameObject;
         seed = GameObject.Find("seed1");
         plant = new GameObject[particleCount];
+        leaves = new GameObject[particleCount / 5];
         beedPositions = new Vector3[particleCount];
         girths = new float[particleCount];
         lastBeed = Instantiate(beed, transform.position, transform.rotation);
@@ -56,8 +66,14 @@ public class Bine : MonoBehaviour {
 
         lastBeed.transform.Rotate(initRotation);
         plant[currentNumberOfBeeds] = lastBeed;
-
         currentNumberOfBeeds++;
+        theLeaf =leaf.GetComponent<Leaf>();
+        theLeaf.FirstLeaf = true;
+        theLeaf.plant = plant;
+        theLeaf.destinationBeadNumber = 5;
+        theLeaf.currentBeadNumber = currentNumberOfBeeds;
+        leaves[0] = leaf;
+        currentNumberOfLeaves++;
     }
     //this is called in fixed intervals
     private void FixedUpdate() {
@@ -79,8 +95,8 @@ public class Bine : MonoBehaviour {
 
                 else if (!hasGroped)
                 {
-                    grope();
-
+                    initGrope();
+                    groping = true;
                 }
 
                 else
@@ -104,8 +120,8 @@ public class Bine : MonoBehaviour {
         else {
             frameCount++;
             //check whether there is a colision on lastbeed
-            
-            
+
+
 
             if (circumnutationOn)
             {
@@ -119,6 +135,11 @@ public class Bine : MonoBehaviour {
                     supportedCircumnutation();
                 }
             }
+            else if (groping)
+            {
+                grope();
+                
+            }
         }
         beedPositions = new Vector3[currentNumberOfBeeds];
         for (int i = 0; i < currentNumberOfBeeds; i++)
@@ -127,14 +148,106 @@ public class Bine : MonoBehaviour {
             girths[i] = tapperFunction_1(i,currentNumberOfBeeds, particleCount, maxGirth);
         }
         //tubeRenderer.SetPoints(beedPositions, 1, Color.cyan);
-        tubeRenderer.SetBinePoints(beedPositions, girths, Color.cyan);
+        if (currentNumberOfBeeds > 1) {
+            tubeRenderer.SetBinePoints(beedPositions, girths, Color.cyan);
+        }
+        
+        LeafGrowth();
     }
+
+    void LeafGrowth()
+    {
+        if ((currentNumberOfBeeds % 5 == 0) && addLeaf)
+        {
+            newLeaf = Instantiate(leaf, leaf.transform.position, leaf.transform.rotation);
+            newLeaf.transform.rotation = Quaternion.Euler(newLeaf.transform.rotation.eulerAngles + new Vector3(0, 90,0));
+            theLeaf = newLeaf.GetComponent<Leaf>();
+            theLeaf.FirstLeaf = false;
+            theLeaf.plant = plant;
+            theLeaf.destinationBeadNumber = currentNumberOfBeeds + 5;
+            theLeaf.currentBeadNumber = currentNumberOfBeeds;
+            leaves[currentNumberOfLeaves] = newLeaf;
+            currentNumberOfLeaves++;
+            addLeaf = false;
+        }
+        if (!(currentNumberOfBeeds % 5 == 0))
+        {
+            addLeaf = true;
+
+        }
+        for (int i = 0; i< currentNumberOfLeaves; i++)
+        {
+            theLeaf = leaves[i].GetComponent<Leaf>();
+            theLeaf.currentBeadNumber = currentNumberOfBeeds;
+
+        }
+            
+    }
+
 
     void grope()
     {
-        if (!IKInitiated) {
+        if (collidingBeed.bounds.Intersects(collidingObject.bounds))
+        {
+            Vector3 newDirection = lastBeed.transform.forward;
+            newDirection.y = 0.0f;
+            Vector3 translatingDirection = Vector3.RotateTowards(Vector3.Normalize(newDirection), -1*Vector3.Normalize(collisionNormal), 1, 0);
+            lastBeed.transform.Translate(0.001f * translatingDirection);
+           //Vector3 newRotation = Vector3.RotateTowards(lastBeed.transform.forward, collisionNormal, supportLostGravitrophismAdjustment, 0);
+            //lastBeed.transform.rotation = Quaternion.LookRotation(newRotation);
+            Debug.Log("goaping: translating");
 
         }
+        else {
+            groping = false;
+            circumnutationOn = true;
+            hasGroped = true;
+
+        }
+
+
+    }
+
+    void initGrope()
+    {
+        
+        //if (!IKInitiated) {
+        //    circumnutationOn = false;
+        //    Debug.Log("initialting IK\n");
+        //    IKSolver theIKSolver =lastBeed.AddComponent<IKSolver>() as IKSolver;
+        //    GameObject g;
+        //    g = new GameObject();
+        //    g.name = "IKpoletarget";
+        //    theIKSolver.poleTarget = g.transform;
+        //    theIKSolver.enable = false;
+        //    theIKSolver.endPointOfLastBone= lastBeed.transform;
+        //    theIKSolver.iterations = NoOfIKIterations;
+        //    IKSolver.Bone bone;
+        //    Debug.Log("current bones: " + currentNumberOfBeeds+"\n");
+        //    IKSolver.Bone[] bones = new IKSolver.Bone[currentNumberOfBeeds-1];
+        //    for (int i=1;i<currentNumberOfBeeds; i++)
+        //    {
+        //        bone = new IKSolver.Bone();
+        //        bone.bone= plant[currentNumberOfBeeds - i-1].transform;
+        //        bones[i - 1] = bone;
+        //        //Debug.Log("bone added: "+ bone.bone.name+ "\n");
+
+        //    }
+        //    Debug.Log("adding bones to IK solver\n");
+        //    theIKSolver.bones = bones;
+        //    IKInitiated = true;
+        //    Debug.Log("initialting IKSolver completes\n");            
+        //    theIKSolver.enable = true;
+        //    theIKSolver.Initialize();
+
+        //    Debug.Log("DONE initialting IKSolver\n");
+
+        //}
+
+        
+        circumnutationOn = false;
+
+
 
 
     }
@@ -256,6 +369,8 @@ public class Bine : MonoBehaviour {
     public void onHitSupportStructure(Collision collision) {
         beedCollision = collision;        
         startingBeed = currentNumberOfBeeds;
+        collidingObject = collision.collider;
+        collidingBeed = lastBeed.GetComponent<Collider>();
         collisionNormal = collision.contacts[0].normal;
         float collitionangleRelativeToUpward= Vector3.Angle(collisionNormal, theUpward);
     

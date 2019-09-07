@@ -7,13 +7,13 @@ public class experimental : MonoBehaviour {
     GameObject go;
     // Use this for initialization
     void Start () {
-       
+        //GameObject go = this.gameObject;
     }
 
     // Update is called once per frame
     void Update () {
-        go = GameObject.Find("GO");
-        Debug.DrawRay(go.transform.position, go.transform.forward, Color.blue, 60 * 5, false);
+        
+        Debug.DrawRay(gameObject.transform.position, gameObject.transform.forward*10, Color.blue, 60 * 60, false);
 
     }
 }

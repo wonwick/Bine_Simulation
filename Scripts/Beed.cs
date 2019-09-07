@@ -33,6 +33,7 @@ public class Beed : MonoBehaviour {
         {
             thePlant.GetComponent<Bine>().onHitSupportStructure(collision);
 
+
         }
         else {
             Debug.Log("not Accepted collition: " + currentCollitionAngle+"<"+acceptedCollitionAngle);
